@@ -14,6 +14,8 @@ export class DeviceType {
     static dimmer = new DeviceType('dimmer');
     static fan = new DeviceType('fan');
     static blind = new DeviceType('blind');
+    static ac = new DeviceType('ac');
+    static threeColorLight = new DeviceType('threeColorLight');
 
     constructor(public name: string) {
     }

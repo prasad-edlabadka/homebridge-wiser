@@ -35,7 +35,7 @@ export class WiserSwitch extends WiserAccessory {
         service.getCharacteristic(this.platform.Characteristic.On)
             .onGet(this.getOn.bind(this))
             .onSet(this.setOn.bind(this));
-
+ 
         return service;
     }
 

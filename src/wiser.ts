@@ -145,23 +145,36 @@ export class Wiser extends EventEmitter {
 
                 let deviceType: DeviceType;
 
-                switch (widget.$.type) {
-                    case '1':
-                        deviceType = DeviceType.dimmer;
-                        break;
-                    case '10':
-                        deviceType = DeviceType.blind;
-                        break;
-                    case '25':
-                        deviceType = DeviceType.fan;
-                        break;
-                    default:
-                        deviceType = DeviceType.switch;
+                //this.log.debug(JSON.stringify(widget));
+
+                if (params[0].$.label.indexOf('Fan') > -1) {
+                    this.log.warn('Fan detected - using fan type (not blind');
+                    deviceType = DeviceType.fan;
+                } else if(params[0].$.label.indexOf('On Off') > -1) {
+                    deviceType = DeviceType.ac;
+                } else if(params[0].$.label.indexOf('Dining table') > -1) {
+                    deviceType = DeviceType.threeColorLight;
+                } else if(params[0].$.label.indexOf('Corner') > -1) {
+                    deviceType = DeviceType.threeColorLight;
+                }else {
+                    switch (widget.$.type) {
+                        case '1':
+                            deviceType = DeviceType.dimmer;
+                            break;
+                        case '10':
+                            deviceType = DeviceType.blind;
+                            break;
+                        case '25':
+                            deviceType = DeviceType.fan;
+                            break;
+                        default:
+                            deviceType = DeviceType.switch;
+                    }
                 }
 
                 const fanSpeeds: number[] = [];
                 if (deviceType === DeviceType.fan) {
-                    const speeds = params[0].$.speeds.split('|');
+                    const speeds = params[0].$.speeds?.split('|') || [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
                     for (const speed of speeds) {
                         if (!isNaN(speed)) {
                             fanSpeeds.push(parseInt(speed));

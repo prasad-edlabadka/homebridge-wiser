@@ -9,6 +9,8 @@ import { WiserBulb } from './wiserbulb';
 import { WiserFan } from './wiserfan';
 import { WiserSwitch } from './wiserswitch';
 import { WiserBlind } from './wiserblind';
+import { WiserAC } from './wiserac';
+import { WiserThreeColorLight } from './wiserthreecolorlight';
 
 export class WiserPlatform implements DynamicPlatformPlugin {
     public readonly Service: typeof Service = this.api.hap.Service;
@@ -143,16 +145,16 @@ export class WiserPlatform implements DynamicPlatformPlugin {
         switch (device.wiserProjectGroup.deviceType) {
             case DeviceType.switch:
                 return new WiserSwitch(this, accessory);
-                break;
             case DeviceType.dimmer:
                 return new WiserBulb(this, accessory);
-                break;
             case DeviceType.fan:
                 return new WiserFan(this, accessory);
-                break;
             case DeviceType.blind:
                 return new WiserBlind(this, accessory);
-                break;
+            case DeviceType.ac:
+                return new WiserAC(this, accessory);
+            case DeviceType.threeColorLight:
+                return new WiserThreeColorLight(this, accessory);
             default:
                 this.log.error(`Unknown device type ${device.wiserProjectGroup.deviceType}`);
                 break;
