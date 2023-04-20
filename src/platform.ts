@@ -50,7 +50,7 @@ export class WiserPlatform implements DynamicPlatformPlugin {
             }
         }
 
-        this.wiser = new Wiser(this.wiserAddress, this.wiserPort, this.username, this.password, log);
+        this.wiser = new Wiser(this.wiserAddress, this.wiserPort, this.username, this.password, this.config.deviceTypes, log);
 
         // When this event is fired it means Homebridge has restored all cached accessories from disk.
         // Dynamic Platform plugins should only register new accessories after this event was fired,
@@ -69,6 +69,7 @@ export class WiserPlatform implements DynamicPlatformPlugin {
                         this.addDevice(group);
                     }
                 }
+                this.wiser.getLevels();
             });
 
             this.wiser.on('groupSet', (groupSetEvent: GroupSetEvent) => {

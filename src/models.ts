@@ -20,6 +20,25 @@ export class DeviceType {
     constructor(public name: string) {
     }
 
+    static fromString(name: string): DeviceType {
+        switch (name) {
+            case 'switch':
+                return DeviceType.switch;
+            case 'dimmer':
+                return DeviceType.dimmer;
+            case 'fan':
+                return DeviceType.fan;
+            case 'blind':
+                return DeviceType.blind;
+            case 'ac':
+                return DeviceType.ac;
+            case 'threeColorLight':
+                return DeviceType.threeColorLight;
+            default:
+                throw new Error(`Unknown device type ${name}`);
+        }
+    }
+
     toString() {
         return `${this.name}`;
     }

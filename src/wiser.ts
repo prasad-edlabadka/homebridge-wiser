@@ -23,6 +23,7 @@ export class Wiser extends EventEmitter {
         public port: number = 8888,
         public username: string,
         public password: string,
+        public deviceTypes,
         public log: Logger,
     ) {
         super();
@@ -119,7 +120,7 @@ export class Wiser extends EventEmitter {
     async getProject(): Promise<[WiserProjectGroup]> {
         const url = `${this.wiserURL}clipsal/resources/project.xml`;
         const response = await this.got(url);
-        this.log.debug(`project response body: ${response.body}`);
+        //this.log.debug(`project response body: ${response.body}`);
         const parser = new this.xml2js.Parser();
         return parser.parseStringPromise(response.body).then((result) => {
             return this.parseProject(result.Project);
@@ -146,17 +147,11 @@ export class Wiser extends EventEmitter {
                 let deviceType: DeviceType;
 
                 //this.log.debug(JSON.stringify(widget));
-
-                if (params[0].$.label.indexOf('Fan') > -1) {
-                    this.log.warn('Fan detected - using fan type (not blind');
-                    deviceType = DeviceType.fan;
-                } else if(params[0].$.label.indexOf('On Off') > -1) {
-                    deviceType = DeviceType.ac;
-                } else if(params[0].$.label.indexOf('Dining table') > -1) {
-                    deviceType = DeviceType.threeColorLight;
-                } else if(params[0].$.label.indexOf('Corner') > -1) {
-                    deviceType = DeviceType.threeColorLight;
-                }else {
+                const devOverride = this.deviceTypes.find((deviceType) => deviceType.name === params[0].$.label);
+                if(devOverride) {
+                    this.log.warn(`Device type override for ${params[0].$.label} to ${devOverride.type}`);
+                    deviceType = DeviceType.fromString(devOverride.type);
+                } else {
                     switch (widget.$.type) {
                         case '1':
                             deviceType = DeviceType.dimmer;
@@ -216,7 +211,7 @@ export class Wiser extends EventEmitter {
         }
     }
 
-    private getLevels() {
+    public getLevels() {
         this.socket!.write('<cbus_cmd app="0x38" command="cbusGetLevel" numaddresses="256" />');
     }
 }

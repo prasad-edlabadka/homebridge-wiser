@@ -33,10 +33,12 @@ export class WiserBulb extends WiserSwitch {
             .onGet(this.getOn.bind(this))
             .onSet(this.setOn.bind(this));
 
-        service.getCharacteristic(this.platform.Characteristic.Brightness)
-            .onGet(this.getLevel.bind(this))
-            .onSet(this.setLevel.bind(this));
 
+        if(this.accessory.context.device.wiserProjectGroup.deviceType.name === 'dimmer') {
+            service.getCharacteristic(this.platform.Characteristic.Brightness)
+                .onGet(this.getLevel.bind(this))
+                .onSet(this.setLevel.bind(this));
+        }
 
         return service;
     }
@@ -69,7 +71,9 @@ export class WiserBulb extends WiserSwitch {
 
     updateOnState() {
         this.service!.updateCharacteristic(this.platform.Characteristic.On, this.level > 0);
-        this.service!.updateCharacteristic(this.platform.Characteristic.Brightness, this.level);
+        if(this.accessory.context.device.wiserProjectGroup.deviceType.name === 'dimmer') {
+            this.service!.updateCharacteristic(this.platform.Characteristic.Brightness, this.level);
+        }
     }
 
 
