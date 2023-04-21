@@ -52,6 +52,7 @@ export class WiserProjectGroup {
         public deviceType: DeviceType,
         public fanSpeeds: number[],
         public application,
+        public dimmable: boolean,
     ) { }
 }
 

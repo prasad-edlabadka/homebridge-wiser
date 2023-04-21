@@ -10,6 +10,7 @@ export class WiserThreeColorLight extends WiserSwitch {
     private defaultColor = 'warm_white';
     private sequence = ['warm_white', 'day_white', 'cool_white'];
     private state = false;
+    private temperatureReset = false;
     private onOff = {
     };
 
@@ -22,9 +23,11 @@ export class WiserThreeColorLight extends WiserSwitch {
         const type = this.platform.config.deviceTypes.find(v => v.name === this.name);
         this.sequence = type ? [type.defaultColor, type.secondColor, type.thirdColor] : ['warm_white', 'day_white', 'cool_white'];
         this.setMatrix();
-        this.defaultColor = this.getPreviousTemp(this.platform.config.deviceTypes.find(
-            (v: { name: string }) => v.name === this.name)?.defaultColor || 'warm_white');
+        this.defaultColor = this.platform.config.deviceTypes.find(
+            (v: { name: string }) => v.name === this.name)?.defaultColor || 'warm_white';
         this.temperature = this.getTempFromColorName(this.defaultColor);
+        this.temperatureReset = true;
+        this.platform.log.debug(`Setting default color for ${this.name} to ${this.defaultColor} (${this.temperature})`);
     }
 
     fetName(): string {
@@ -55,8 +58,6 @@ export class WiserThreeColorLight extends WiserSwitch {
             .onGet(this.getTemperature.bind(this))
             .onSet(this.setTemperature.bind(this));
 
-        this.platform.log.debug(`Setting default color for ${this.name} to ${this.defaultColor} (${this.temperature})`);
-
         return service;
     }
 
@@ -67,15 +68,18 @@ export class WiserThreeColorLight extends WiserSwitch {
         if (value as boolean) {
             try {
                 clearTimeout(this.func);
+                this.temperatureReset = false;
             } catch (error) {
                 this.platform.log.error(`${error}`);
             }
-            this.temperature = this.getNextTemp(this.temperature);
+            this.temperature = this.temperatureReset?this.temperature:this.getNextTemp(this.temperature);
             this.service!.updateCharacteristic(this.platform.Characteristic.ColorTemperature, this.temperature);
         } else {
             this.func = setTimeout(() => {
                 //Set to default
                 this.temperature = this.getTempFromColorName(this.defaultColor);
+                this.service!.updateCharacteristic(this.platform.Characteristic.ColorTemperature, this.temperature);
+                this.temperatureReset = true;
             }, 10000);
         }
     }
@@ -104,7 +108,6 @@ export class WiserThreeColorLight extends WiserSwitch {
         };
         for (let i = 0; i < this.sequence.length; i++) {
             this.onOff[this.sequence[i]] = {};
-
             for (let j = 0; j < this.sequence.length; j++) {
                 this.onOff[this.sequence[i]][this.sequence[j]] = (j - i) < 0 ? (j - i + this.sequence.length) : (j - i);
             }
@@ -112,7 +115,6 @@ export class WiserThreeColorLight extends WiserSwitch {
     }
 
     getPreviousTemp(current) {
-        //const sequence = ['warm_white', 'day_white', 'cool_white'];
         const index = this.sequence.indexOf(current);
         return this.sequence[index - 1] || this.sequence[this.sequence.length - 1];
     }
@@ -132,18 +134,12 @@ export class WiserThreeColorLight extends WiserSwitch {
     }
 
     getTempFromColorName(color) {
-        if (color === 'cool_white') {
-            return 140;
-        } else if (color === 'day_white') {
-            return 222;
-        } else {
-            return 400;
-        }
+        const values = {'cool_white': 140, 'day_white': 222, 'warm_white': 400};
+        return values[color] || 400;
     }
 
     async setTemperature(value: CharacteristicValue) {
         const times = this.onOff[this.getColorNameFromColorTemp(this.temperature)][this.getColorNameFromColorTemp(value as number)];
-        this.platform.log.warn(JSON.stringify(this.onOff));
         for (let i = 0; i < times; i++) {
             this.wiser.setGroupLevel(this.device.wiserProjectGroup.address, 0);
             await this.sleep(1200);
@@ -178,7 +174,6 @@ export class WiserThreeColorLight extends WiserSwitch {
     updateOnState() {
         this.service!.updateCharacteristic(this.platform.Characteristic.On, this.state);
         this.service!.updateCharacteristic(this.platform.Characteristic.ColorTemperature, this.temperature);
-        //this.service!.updateCharacteristic(this.platform.Characteristic.Brightness, this.level);
     }
 
 

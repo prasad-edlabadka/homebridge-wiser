@@ -138,6 +138,7 @@ export class Wiser extends EventEmitter {
             const ga = params[0].$.ga;
             const name = params[0].$.label;
             const network = params[0].$.network;
+            const dimmable = (widget.$.type === '1');
 
             if ('undefined' !== typeof app &&
                 'undefined' !== typeof ga &&
@@ -177,7 +178,7 @@ export class Wiser extends EventEmitter {
                         fanSpeeds.sort();
                     }
                 }
-                const group = new WiserProjectGroup(name, new AccessoryAddress(network, ga), deviceType, fanSpeeds, app);
+                const group = new WiserProjectGroup(name, new AccessoryAddress(network, ga), deviceType, fanSpeeds, app, dimmable);
                 this.log.debug(`New group ${group.address.network}:${group.address.groupAddress} of type ${group.deviceType}`);
                 groups.push(group);
             }
