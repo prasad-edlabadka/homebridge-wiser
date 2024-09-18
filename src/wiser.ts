@@ -158,6 +158,7 @@ export class Wiser extends EventEmitter {
       const name = params[0].$.label;
       const network = params[0].$.network;
       const dimmable = widget.$.type === '1';
+      const ramprate = params[0].$.ramprate;
 
       if (
         'undefined' !== typeof app &&
@@ -211,6 +212,7 @@ export class Wiser extends EventEmitter {
           fanSpeeds,
           app,
           dimmable,
+          ramprate,
         );
         this.log.debug(
           `New group ${group.address.network}:${group.address.groupAddress} of type ${group.deviceType}`,

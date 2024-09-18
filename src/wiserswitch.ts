@@ -76,7 +76,7 @@ export class WiserSwitch extends WiserAccessory {
     this.wiser.setGroupLevel(
       this.device.wiserProjectGroup.address,
       this.toWiserLevel(targetLevel),
-      this.deviceConfig.fadeTime,
+      this.device.wiserProjectGroup.ramprate,
     );
   }
 
