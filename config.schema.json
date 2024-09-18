@@ -1,208 +1,183 @@
 {
-	"pluginAlias": "homebridge-wiser",
-	"pluginType": "platform",
-	"singular": false,
-	"schema": {
-		"type": "object",
-		"properties": {
-			"name": {
-				"title": "Name",
-				"type": "string",
-				"required": true
-			},
-			"wiserAddress": {
-				"title": "Wiser IP Address",
-				"type": "string",
-				"format": "ipv4",
-				"required": true
-			},
-			"wiserUsername": {
-				"title": "Wiser admin user name",
-				"type": "string",
-				"default": "admin",
-				"required": true
-			},
-			"wiserPassword": {
-				"title": "Wiser admin password",
-				"type": "string",
-				"required": true
-			},
-			"wiserPort": {
-				"title": "Wiser port password",
-				"type": "integer",
-				"default": 8888,
-				"required": true
-			},
-			"ignoredGAs": {
-				"title": "Ignored groups",
-				"type": "array",
-				"items": {
-					"title": "Group address",
-					"type": "object",
-					"properties": {
-						"network": {
-							"title": "Network",
-							"type": "integer",
-							"required": true,
-							"default": 254,
-							"maximum": 255
-						},
-						"ga": {
-							"title": "Group address",
-							"type": "integer",
-							"required": true,
-							"maximum": 255,
-							"default": 0
-						}
-					}
-				}
-			},
-			"deviceTypes": {
-				"title": "Optional Device type overrides",
-				"type": "array",
-				"items": {
-					"title": "Device Details",
-					"type": "object",
-					"properties": {
-						"name": {
-							"title": "Device Name",
-							"type": "string",
-							"required": true
-						},
-						"type": {
-							"title": "Device Type",
-							"type": "string",
-							"required": true,
-							"oneOf": [
-								{
-									"title": "Light",
-									"enum": [
-										"dimmer"
-									]
-								},
-								{
-									"title": "Fan",
-									"enum": [
-										"fan"
-									]
-								},
-								{
-									"title": "Air Conditioner",
-									"enum": [
-										"ac"
-									]
-								},
-								{
-									"title": "Three Coloured Light",
-									"enum": [
-										"threeColorLight"
-									]
-								},
-								{
-									"title": "Switch",
-									"enum": [
-										"switch"
-									]
-								},
-								{
-									"title": "Blinds",
-									"enum": [
-										"blind"
-									]
-								}
-							]
-						},
-						"defaultColor": {
-							"title": "Default Device Color after First Power On",
-							"type": "string",
-							"required": true,
-							"oneOf": [
-								{
-									"title": "Cool White",
-									"enum": [
-										"cool_white"
-									]
-								},
-								{
-									"title": "Day White",
-									"enum": [
-										"day_white"
-									]
-								},
-								{
-									"title": "Warm White",
-									"enum": [
-										"warm_white"
-									]
-								}
-							],
-							"condition": {
-								"functionBody": "return model.deviceTypes[arrayIndices].type === 'threeColorLight';"
-							}
-							
-						},
-						"secondColor": {
-							"title": "Second Color after one switch off and on",
-							"type": "string",
-							"required": true,
-							"oneOf": [
-								{
-									"title": "Cool White",
-									"enum": [
-										"cool_white"
-									]
-								},
-								{
-									"title": "Day White",
-									"enum": [
-										"day_white"
-									]
-								},
-								{
-									"title": "Warm White",
-									"enum": [
-										"warm_white"
-									]
-								}
-							],
-							"condition": {
-								"functionBody": "return model.deviceTypes[arrayIndices].type === 'threeColorLight';"
-							}
-						},
-						"thirdColor": {
-							"title": "Third Color after two switch off and on",
-							"type": "string",
-							"condition": {
-								"functionBody": "return model.deviceTypes[arrayIndices].type === 'threeColorLight';"
-							},
-							"oneOf": [
-								{
-									"title": "Cool White",
-									"enum": [
-										"cool_white"
-									]
-								},
-								{
-									"title": "Day White",
-									"enum": [
-										"day_white"
-									]
-								},
-								{
-									"title": "Warm White",
-									"enum": [
-										"warm_white"
-									]
-								}
-							]
-							
-						}
-					}
-					}
-					
-			}
-		}
-	},
-	"form": null,
-	"display": null
+  "pluginAlias": "homebridge-wiser",
+  "pluginType": "platform",
+  "singular": false,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "required": true
+      },
+      "wiserAddress": {
+        "title": "Wiser IP Address",
+        "type": "string",
+        "format": "ipv4",
+        "required": true
+      },
+      "wiserUsername": {
+        "title": "Wiser admin user name",
+        "type": "string",
+        "default": "admin",
+        "required": true
+      },
+      "wiserPassword": {
+        "title": "Wiser admin password",
+        "type": "string",
+        "required": true
+      },
+      "wiserPort": {
+        "title": "Wiser port password",
+        "type": "integer",
+        "default": 8888,
+        "required": true
+      },
+      "ignoredGAs": {
+        "title": "Ignored groups",
+        "type": "array",
+        "items": {
+          "title": "Group address",
+          "type": "object",
+          "properties": {
+            "network": {
+              "title": "Network",
+              "type": "integer",
+              "required": true,
+              "default": 254,
+              "maximum": 255
+            },
+            "ga": {
+              "title": "Group address",
+              "type": "integer",
+              "required": true,
+              "maximum": 255,
+              "default": 0
+            }
+          }
+        }
+      },
+      "deviceTypes": {
+        "title": "Optional Device type overrides",
+        "type": "array",
+        "items": {
+          "title": "Device Details",
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Device Name",
+              "type": "string",
+              "required": true
+            },
+            "type": {
+              "title": "Device Type",
+              "type": "string",
+              "required": true,
+              "oneOf": [
+                {
+                  "title": "Light",
+                  "enum": ["dimmer"]
+                },
+                {
+                  "title": "Fan",
+                  "enum": ["fan"]
+                },
+                {
+                  "title": "Air Conditioner",
+                  "enum": ["ac"]
+                },
+                {
+                  "title": "Three Coloured Light",
+                  "enum": ["threeColorLight"]
+                },
+                {
+                  "title": "Switch",
+                  "enum": ["switch"]
+                },
+                {
+                  "title": "Blinds",
+                  "enum": ["blind"]
+                }
+              ]
+            },
+            "defaultColor": {
+              "title": "Default Device Color after First Power On",
+              "type": "string",
+              "required": true,
+              "oneOf": [
+                {
+                  "title": "Cool White",
+                  "enum": ["cool_white"]
+                },
+                {
+                  "title": "Day White",
+                  "enum": ["day_white"]
+                },
+                {
+                  "title": "Warm White",
+                  "enum": ["warm_white"]
+                }
+              ],
+              "condition": {
+                "functionBody": "return model.deviceTypes[arrayIndices].type === 'threeColorLight';"
+              }
+            },
+            "secondColor": {
+              "title": "Second Color after one switch off and on",
+              "type": "string",
+              "required": true,
+              "oneOf": [
+                {
+                  "title": "Cool White",
+                  "enum": ["cool_white"]
+                },
+                {
+                  "title": "Day White",
+                  "enum": ["day_white"]
+                },
+                {
+                  "title": "Warm White",
+                  "enum": ["warm_white"]
+                }
+              ],
+              "condition": {
+                "functionBody": "return model.deviceTypes[arrayIndices].type === 'threeColorLight';"
+              }
+            },
+            "thirdColor": {
+              "title": "Third Color after two switch off and on",
+              "type": "string",
+              "condition": {
+                "functionBody": "return model.deviceTypes[arrayIndices].type === 'threeColorLight';"
+              },
+              "oneOf": [
+                {
+                  "title": "Cool White",
+                  "enum": ["cool_white"]
+                },
+                {
+                  "title": "Day White",
+                  "enum": ["day_white"]
+                },
+                {
+                  "title": "Warm White",
+                  "enum": ["warm_white"]
+                }
+              ]
+            },
+            "fadeTime": {
+              "title": "Fade Time in Seconds",
+              "type": "integer",
+              "required": false,
+              "condition": {
+                "functionBody": "return model.deviceTypes[arrayIndices].type === 'dimmer';"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "form": null,
+  "display": null
 }
