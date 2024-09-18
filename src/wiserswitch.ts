@@ -7,16 +7,12 @@ import { WiserAccessory } from './wiseraccessory';
 export class WiserSwitch extends WiserAccessory {
   protected level = 0;
   protected previousLevel = 100;
-  private deviceConfig: any = {};
 
   constructor(
     protected readonly platform: WiserPlatform,
     protected readonly accessory: PlatformAccessory,
   ) {
     super(platform, accessory);
-    this.deviceConfig = this.platform.config.deviceTypes.find(
-      (v) => v.name === this.name,
-    );
   }
 
   getName(): string {
@@ -72,7 +68,6 @@ export class WiserSwitch extends WiserAccessory {
       `${this.name} set on/off ${newState} target level ${targetLevel}`,
     );
     this.level = targetLevel;
-    this.platform.log.info('@@@@@', this.deviceConfig.fadeTime);
     this.wiser.setGroupLevel(
       this.device.wiserProjectGroup.address,
       this.toWiserLevel(targetLevel),
