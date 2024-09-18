@@ -150,16 +150,16 @@ export class WiserThreeColorLight extends WiserSwitch {
 
   getColorNameFromColorTemp(temp) {
     if (temp < 172) {
-      return 'cool_white';
+      return 'warm_white';
     } else if (temp < 225) {
       return 'day_white';
     } else {
-      return 'warm_white';
+      return 'cool_white';
     }
   }
 
   getTempFromColorName(color) {
-    const values = { cool_white: 140, day_white: 222, warm_white: 400 };
+    const values = { cool_white: 400, day_white: 222, warm_white: 140 };
     return values[color] || 400;
   }
 
