@@ -6,8 +6,8 @@ import { WiserSwitch } from './wiserswitch';
 
 export class WiserThreeColorLight extends WiserSwitch {
   private temperature = 140;
-  private defaultColor = 'warm_white';
-  private sequence = ['warm_white', 'day_white', 'cool_white'];
+  private defaultColor = 'cool_white';
+  private sequence = ['cool_white', 'day_white', 'warm_white'];
   private state = false;
   private temperatureReset = false;
   private onOff = {};
@@ -16,6 +16,7 @@ export class WiserThreeColorLight extends WiserSwitch {
     protected readonly platform: WiserPlatform,
     protected readonly accessory: PlatformAccessory,
   ) {
+    console.log('@@@@@@@@@@@');
     super(platform, accessory);
     const type = this.platform.config.deviceTypes.find(
       (v) => v.name === this.name,
@@ -113,9 +114,9 @@ export class WiserThreeColorLight extends WiserSwitch {
   private setMatrix() {
     this.onOff = {
       warm_white: {
-        warm_white: 0,
-        day_white: 1,
-        cool_white: 2,
+        cool_white: 0,
+        warm_white: 1,
+        day_white: 2,
       },
       day_white: {
         warm_white: 2,
@@ -135,6 +136,7 @@ export class WiserThreeColorLight extends WiserSwitch {
           j - i < 0 ? j - i + this.sequence.length : j - i;
       }
     }
+    this.platform.log.error(`OnOff matrix: ${JSON.stringify(this.onOff)}`);
   }
 
   getPreviousTemp(current) {
