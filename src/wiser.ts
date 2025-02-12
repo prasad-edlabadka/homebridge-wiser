@@ -225,7 +225,7 @@ export class Wiser extends EventEmitter {
   }
 
   handleWiserData(name, attrs) {
-    this.log.warn(`Received ${name} ${JSON.stringify(attrs)}`);
+    this.log.debug(`Received ${name} ${JSON.stringify(attrs)}`);
     if ('cbus_event' === name && 'cbusSetLevel' === attrs['name']) {
       const group = parseInt(attrs['group']);
       const level = parseInt(attrs['level']);

@@ -22,8 +22,8 @@
     "url": "https://github.com/prasad-edlabadka/homebridge-wiser/issues"
   },
   "engines": {
-    "node": ">=0.12.0",
-    "homebridge": ">=0.2.0"
+    "homebridge": "^1.6.0 || ^2.0.0-beta.0",
+    "node": "^18.20.4 || ^20.15.1 || ^22"
   },
   "dependencies": {
     "got": "^11.8.5",

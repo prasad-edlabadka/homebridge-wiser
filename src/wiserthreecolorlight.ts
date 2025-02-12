@@ -7,7 +7,7 @@ import { WiserSwitch } from './wiserswitch';
 export class WiserThreeColorLight extends WiserSwitch {
   private temperature = 140;
   private defaultColor = 'cool_white';
-  private sequence = ['cool_white', 'day_white', 'warm_white'];
+  private sequence = ['cool_white', 'warm_white', 'day_white'];
   private state = false;
   private temperatureReset = false;
   private onOff = {};
@@ -16,7 +16,6 @@ export class WiserThreeColorLight extends WiserSwitch {
     protected readonly platform: WiserPlatform,
     protected readonly accessory: PlatformAccessory,
   ) {
-    console.log('@@@@@@@@@@@');
     super(platform, accessory);
     const type = this.platform.config.deviceTypes.find(
       (v) => v.name === this.name,
@@ -50,7 +49,7 @@ export class WiserThreeColorLight extends WiserSwitch {
     this.accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Clipsal')
-      .setCharacteristic(this.platform.Characteristic.Model, 'Dimmer')
+      .setCharacteristic(this.platform.Characteristic.Model, 'Switch')
       .setCharacteristic(
         this.platform.Characteristic.SerialNumber,
         `${this.accessory.context.device.id}`.padStart(4, '0'),
@@ -68,7 +67,7 @@ export class WiserThreeColorLight extends WiserSwitch {
       .setProps({
         minValue: 140,
         maxValue: 500,
-        minStep: 1,
+        minStep: 100,
       })
       .onGet(this.getTemperature.bind(this))
       .onSet(this.setTemperature.bind(this));
@@ -81,12 +80,6 @@ export class WiserThreeColorLight extends WiserSwitch {
     super.setOn(value);
     this.state = value as boolean;
     if (value as boolean) {
-      try {
-        clearTimeout(this.func);
-        this.temperatureReset = false;
-      } catch (error) {
-        this.platform.log.error(`${error}`);
-      }
       this.temperature = this.temperatureReset
         ? this.temperature
         : this.getNextTemp(this.temperature);
@@ -94,10 +87,20 @@ export class WiserThreeColorLight extends WiserSwitch {
         this.platform.Characteristic.ColorTemperature,
         this.temperature,
       );
+      try {
+        clearTimeout(this.func);
+        this.temperatureReset = false;
+      } catch (error) {
+        this.platform.log.error(`${error}`);
+      }
     } else {
       this.func = setTimeout(() => {
         //Set to default
         this.temperature = this.getTempFromColorName(this.defaultColor);
+        this.platform.log.debug(
+          `Resetting ${this.name} to default color`,
+          this.defaultColor,
+        );
         this.service!.updateCharacteristic(
           this.platform.Characteristic.ColorTemperature,
           this.temperature,
@@ -114,9 +117,9 @@ export class WiserThreeColorLight extends WiserSwitch {
   private setMatrix() {
     this.onOff = {
       warm_white: {
-        cool_white: 0,
-        warm_white: 1,
-        day_white: 2,
+        cool_white: 2,
+        warm_white: 0,
+        day_white: 1,
       },
       day_white: {
         warm_white: 2,
@@ -136,7 +139,7 @@ export class WiserThreeColorLight extends WiserSwitch {
           j - i < 0 ? j - i + this.sequence.length : j - i;
       }
     }
-    this.platform.log.error(`OnOff matrix: ${JSON.stringify(this.onOff)}`);
+    this.platform.log.debug(`OnOff matrix: ${JSON.stringify(this.onOff)}`);
   }
 
   getPreviousTemp(current) {
@@ -149,18 +152,19 @@ export class WiserThreeColorLight extends WiserSwitch {
   }
 
   getColorNameFromColorTemp(temp) {
+    this.platform.log.debug(`Getting color name for ${temp}`);
     if (temp < 172) {
-      return 'warm_white';
-    } else if (temp < 225) {
+      return 'cool_white';
+    } else if (temp < 241) {
       return 'day_white';
     } else {
-      return 'cool_white';
+      return 'warm_white';
     }
   }
 
   getTempFromColorName(color) {
-    const values = { cool_white: 400, day_white: 222, warm_white: 140 };
-    return values[color] || 400;
+    const values = { cool_white: 140, day_white: 240, warm_white: 400 };
+    return values[color] || 140;
   }
 
   async setTemperature(value: CharacteristicValue) {
