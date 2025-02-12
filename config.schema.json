@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "homebridge-wiser",
+  "pluginAlias": "@prasad-edlabadkar/homebridge-wiser",
   "pluginType": "platform",
   "singular": false,
   "schema": {
