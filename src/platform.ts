@@ -68,8 +68,8 @@ export class WiserPlatform implements DynamicPlatformPlugin {
         // to start discovery of new accessories.
         this.api.on('didFinishLaunching', () => {
             log.debug('Executed didFinishLaunching callback');
-            this.log.info(`[didFinishLaunching] isMatterEnabled: ${this.api.isMatterEnabled?.()}`);
-            this.log.info(`[didFinishLaunching] matterAccessoriesMap size: ${this.matterAccessoriesMap.size}`);
+            this.log.debug(`[didFinishLaunching] isMatterEnabled: ${this.api.isMatterEnabled?.()}`);
+            this.log.debug(`[didFinishLaunching] matterAccessoriesMap size: ${this.matterAccessoriesMap.size}`);
 
             if (this.api.isMatterEnabled?.()) {
                 const restoredAccessories: MatterAccessory[] = [];
