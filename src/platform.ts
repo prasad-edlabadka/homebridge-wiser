@@ -1,6 +1,4 @@
-'use strict';
-
-import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
+import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic, MatterAccessory } from 'homebridge';
 import { GroupSetEvent, WiserDevice, WiserProjectGroup, DeviceType, AccessoryAddress } from './models';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { Wiser } from './wiser';
@@ -11,6 +9,15 @@ import { WiserSwitch } from './wiserswitch';
 import { WiserBlind } from './wiserblind';
 import { WiserAC } from './wiserac';
 import { WiserThreeColorLight } from './wiserthreecolorlight';
+import {
+    BaseMatterAccessory,
+    WiserMatterSwitch,
+    WiserMatterBulb,
+    WiserMatterFan,
+    WiserMatterBlind,
+    WiserMatterAC,
+    WiserMatterThreeColorLight,
+} from './matter';
 
 export class WiserPlatform implements DynamicPlatformPlugin {
     public readonly Service: typeof Service = this.api.hap.Service;
@@ -26,6 +33,9 @@ export class WiserPlatform implements DynamicPlatformPlugin {
     private wiser: Wiser;
     private wiserGroups: Record<number, WiserAccessory> = {};
     private ignoredAddresses: AccessoryAddress[] = [];
+
+    private matterAccessoriesMap: Map<string, MatterAccessory> = new Map();
+    private wiserMatterGroups: Record<number, BaseMatterAccessory> = {};
 
     private initialRetryDelay = 5000;
     private retryDelay = this.initialRetryDelay;
@@ -58,16 +68,60 @@ export class WiserPlatform implements DynamicPlatformPlugin {
         // to start discovery of new accessories.
         this.api.on('didFinishLaunching', () => {
             log.debug('Executed didFinishLaunching callback');
-            this.wiser.start();
+            this.log.info(`[didFinishLaunching] isMatterEnabled: ${this.api.isMatterEnabled?.()}`);
+            this.log.info(`[didFinishLaunching] matterAccessoriesMap size: ${this.matterAccessoriesMap.size}`);
+
+            if (this.api.isMatterEnabled?.()) {
+                const restoredAccessories: MatterAccessory[] = [];
+                for (const [uuid, cachedAccessory] of this.matterAccessoriesMap.entries()) {
+                    if (cachedAccessory.context?.device) {
+                        try {
+                            const device = this.reconstructDeviceFromContext(cachedAccessory.context);
+                            const wiserAccessory = this.createMatterAccessory(device, cachedAccessory);
+                            this.wiserMatterGroups[device.id] = wiserAccessory;
+                            restoredAccessories.push(wiserAccessory.toAccessory());
+                        } catch (err) {
+                            this.log.error(`Failed to reconstruct cached accessory ${cachedAccessory.displayName}:`, err);
+                        }
+                    }
+                }
+                if (restoredAccessories.length > 0) {
+                    this.log.info(`Registering ${restoredAccessories.length} restored Matter accessories synchronously...`);
+                    this.api.matter!.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, restoredAccessories)
+                      .then(() => {
+                          this.log.info('Successfully registered all restored Matter accessories. Starting Wiser...');
+                          this.wiser.start();
+                      })
+                      .catch((err) => {
+                          this.log.error('Failed to register restored Matter accessories:', err);
+                          this.wiser.start();
+                      });
+                } else {
+                    this.wiser.start();
+                }
+            } else {
+                this.wiser.start();
+            }
 
             this.wiser.on('retrievedProject', (projectGroups: WiserProjectGroup[]) => {
+                const newMatterAccessories: MatterAccessory[] = [];
                 for (const group of projectGroups) {
                     const ignored = this.isIgnored(group.address);
                     if (ignored) {
                         this.log.info(`Ignoring ${group.name}(${group.address})`);
                     } else {
-                        this.addDevice(group);
+                        this.addDevice(group, newMatterAccessories);
                     }
+                }
+                if (newMatterAccessories.length > 0) {
+                    this.log.info(`Registering ${newMatterAccessories.length} new Matter accessories in a single batch...`);
+                    this.api.matter!.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, newMatterAccessories)
+                      .then(() => {
+                          this.log.info('Successfully registered all new Matter accessories.');
+                      })
+                      .catch((err) => {
+                          this.log.error('Failed to register Matter accessories:', err);
+                      });
                 }
                 this.wiser.getLevels();
             });
@@ -83,6 +137,21 @@ export class WiserPlatform implements DynamicPlatformPlugin {
     }
 
     setGroup(groupSetEvent: GroupSetEvent, missingGroupIsError = true) {
+        if (this.api.isMatterEnabled?.()) {
+            const matterAccessory = this.wiserMatterGroups[groupSetEvent.groupAddress];
+            if (undefined !== matterAccessory) {
+                this.log.info(`Setting Matter ${matterAccessory.displayName}(${matterAccessory.id}) to ${groupSetEvent.level}`);
+                matterAccessory.setStatusFromEvent(groupSetEvent);
+            } else {
+                if (missingGroupIsError) {
+                    if (!this.isIgnored(new AccessoryAddress(254, groupSetEvent.groupAddress))) {
+                        this.log.warn(`Could not find Matter accessory to handle event for ${groupSetEvent.groupAddress}`);
+                    }
+                }
+            }
+            return;
+        }
+
         const accessory = this.wiserGroups[groupSetEvent.groupAddress];
         if (undefined !== accessory) {
             this.log.debug(`Setting ${accessory.name}(${accessory.id}) to ${groupSetEvent.level}`);
@@ -110,9 +179,18 @@ export class WiserPlatform implements DynamicPlatformPlugin {
         this.accessories.push(accessory);
     }
 
-    addDevice(group: WiserProjectGroup) {
+    configureMatterAccessory(accessory: MatterAccessory) {
+        this.log.info('Loading Matter accessory from cache:', accessory.displayName);
+        this.matterAccessoriesMap.set(accessory.UUID, accessory);
+    }
 
+    addDevice(group: WiserProjectGroup, newMatterAccessories?: MatterAccessory[]) {
         const device = new WiserDevice(group.name, group.name, group.address.groupAddress, group, this.wiser);
+
+        if (this.api.isMatterEnabled?.()) {
+            this.addMatterDevice(device, newMatterAccessories);
+            return;
+        }
 
         if (undefined !== this.wiserGroups[device.id]) {
             this.log.warn(`Ignoring duplicate device for group address ${device.id}`);
@@ -142,6 +220,36 @@ export class WiserPlatform implements DynamicPlatformPlugin {
         this.wiserGroups[device.id] = wiserAccessory;
     }
 
+    addMatterDevice(device: WiserDevice, newMatterAccessories?: MatterAccessory[]) {
+        if (undefined !== this.wiserMatterGroups[device.id]) {
+            this.log.warn(`Ignoring duplicate Matter device for group address ${device.id}`);
+            return;
+        }
+
+        this.log.debug(`Adding Matter group ${device.id}`);
+
+        const uuid = this.api.matter!.uuid.generate(`${device.wiserProjectGroup.address.network}-${device.wiserProjectGroup.application}-${device.id}`);
+        const existingAccessory = this.matterAccessoriesMap.get(uuid);
+
+        let wiserAccessory: BaseMatterAccessory;
+
+        if (existingAccessory) {
+            this.log.info('Restoring existing Matter accessory from cache:', existingAccessory.displayName);
+            existingAccessory.context.device = device;
+            wiserAccessory = this.createMatterAccessory(device, existingAccessory);
+        } else {
+            this.log.info('Adding new Matter accessory:', device.displayName);
+            wiserAccessory = this.createMatterAccessory(device, undefined, uuid);
+        }
+
+        if (newMatterAccessories) {
+            newMatterAccessories.push(wiserAccessory.toAccessory());
+        } else {
+            this.api.matter!.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [wiserAccessory.toAccessory()]);
+        }
+        this.wiserMatterGroups[device.id] = wiserAccessory;
+    }
+
     createAccessory(device: WiserDevice, accessory: PlatformAccessory): WiserAccessory {
         switch (device.wiserProjectGroup.deviceType) {
             case DeviceType.switch:
@@ -161,6 +269,45 @@ export class WiserPlatform implements DynamicPlatformPlugin {
                 break;
         }
         return new WiserSwitch(this, accessory);
+    }
+
+    createMatterAccessory(device: WiserDevice, existingAccessory?: MatterAccessory, uuid?: string): BaseMatterAccessory {
+        switch (device.wiserProjectGroup.deviceType) {
+            case DeviceType.switch:
+                return new WiserMatterSwitch(this, device, existingAccessory, uuid);
+            case DeviceType.dimmer:
+                return new WiserMatterBulb(this, device, existingAccessory, uuid);
+            case DeviceType.fan:
+                return new WiserMatterFan(this, device, existingAccessory, uuid);
+            case DeviceType.blind:
+                return new WiserMatterBlind(this, device, existingAccessory, uuid);
+            case DeviceType.ac:
+                return new WiserMatterAC(this, device, existingAccessory, uuid);
+            case DeviceType.threeColorLight:
+                return new WiserMatterThreeColorLight(this, device, existingAccessory, uuid);
+            default:
+                this.log.error(`Unknown device type ${device.wiserProjectGroup.deviceType}`);
+                break;
+        }
+        return new WiserMatterSwitch(this, device, existingAccessory, uuid);
+    }
+
+    private reconstructDeviceFromContext(context: any): WiserDevice {
+        const cachedDevice = context.device;
+        const cachedGroup = cachedDevice.wiserProjectGroup;
+        const address = new AccessoryAddress(cachedGroup.address.network, cachedGroup.address.groupAddress);
+        const deviceTypeName = typeof cachedGroup.deviceType === 'string' ? cachedGroup.deviceType : (cachedGroup.deviceType?.name || 'switch');
+        const deviceType = DeviceType.fromString(deviceTypeName);
+        const group = new WiserProjectGroup(
+            cachedGroup.name,
+            address,
+            deviceType,
+            cachedGroup.fanSpeeds || [],
+            cachedGroup.application,
+            cachedGroup.dimmable,
+            cachedGroup.ramprate
+        );
+        return new WiserDevice(cachedDevice.displayName, cachedDevice.name, cachedDevice.id, group, this.wiser);
     }
 
     private isIgnored(checkAddress: AccessoryAddress): boolean {

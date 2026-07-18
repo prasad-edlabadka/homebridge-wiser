@@ -46,10 +46,9 @@ export class Wiser extends EventEmitter {
             this.socket = socket;
             this.log.debug('***Connected***');
             this.sendAuth(socket, authKey);
-            this.getLevels();
 
             socket.on('data', (data) => {
-              this.log.debug(`Received ${data}`);
+              this.log.info(`Received raw socket data: ${data}`);
               //  this.handleWiserData(data);
             });
 
@@ -112,8 +111,9 @@ export class Wiser extends EventEmitter {
 
   async getAuthKey(): Promise<string> {
     const url = `${this.wiserURL}clipsal/resources/projectorkey.xml`;
+    this.log.info(`Fetching auth key from Wiser: ${url}`);
     const response = await this.got(url);
-    this.log.debug(`Auth response body: ${response.body}`);
+    this.log.info(`Fetched auth key successfully, status: ${response.statusCode}`);
     const parser = new this.xml2js.Parser();
     return parser.parseStringPromise(response.body).then((result) => {
       return result.cbus_auth_data.$.value;
@@ -138,10 +138,12 @@ export class Wiser extends EventEmitter {
 
   async getProject(): Promise<[WiserProjectGroup]> {
     const url = `${this.wiserURL}clipsal/resources/project.xml`;
+    this.log.info(`Fetching project XML from Wiser: ${url}`);
     const response = await this.got(url);
-    //this.log.debug(`project response body: ${response.body}`);
+    this.log.info(`Fetched project XML successfully, status: ${response.statusCode}`);
     const parser = new this.xml2js.Parser();
     return parser.parseStringPromise(response.body).then((result) => {
+      this.log.info('Parsed project XML to JSON successfully');
       return this.parseProject(result.Project);
     });
   }
@@ -225,17 +227,17 @@ export class Wiser extends EventEmitter {
   }
 
   handleWiserData(name, attrs) {
-    this.log.debug(`Received ${name} ${JSON.stringify(attrs)}`);
+    this.log.info(`Received parsed XML element: ${name} ${JSON.stringify(attrs)}`);
     if ('cbus_event' === name && 'cbusSetLevel' === attrs['name']) {
       const group = parseInt(attrs['group']);
       const level = parseInt(attrs['level']);
-      this.log.debug(`Setting ${group} to ${level}`);
+      this.log.info(`Setting ${group} to ${level}`);
       this.emit('groupSet', new GroupSetEvent(group, level));
     } else if ('cbus_resp' === name && 'cbusGetLevel' === attrs['command']) {
       const levels = attrs['level'].split(',');
       for (let i = 0; i < levels.length - 1; i++) {
         const level = parseInt(levels[i]);
-        this.log.debug(`Setting level ${level} for ${i}`);
+        this.log.info(`Setting level ${level} for ${i}`);
         this.emit('groupSetScan', new GroupSetEvent(i, level));
       }
     }
@@ -251,6 +253,7 @@ export class Wiser extends EventEmitter {
   }
 
   public getLevels() {
+    this.log.info('Sending cbusGetLevel scan command');
     this.socket!.write(
       '<cbus_cmd app="0x38" command="cbusGetLevel" numaddresses="256" />',
     );
