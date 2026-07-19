@@ -1,4 +1,13 @@
-import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic, MatterAccessory } from 'homebridge';
+import {
+    API,
+    DynamicPlatformPlugin,
+    Logger,
+    PlatformAccessory,
+    PlatformConfig,
+    Service,
+    Characteristic,
+    MatterAccessory,
+} from 'homebridge';
 import { GroupSetEvent, WiserDevice, WiserProjectGroup, DeviceType, AccessoryAddress } from './models';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { Wiser } from './wiser';
@@ -26,11 +35,11 @@ export class WiserPlatform implements DynamicPlatformPlugin {
     // this is used to track restored cached accessories
     public readonly accessories: PlatformAccessory[] = [];
 
-    private wiserAddress: string;
-    private wiserPort: number;
-    private username: string;
-    private password: string;
-    private wiser: Wiser;
+    private wiserAddress!: string;
+    private wiserPort!: number;
+    private username!: string;
+    private password!: string;
+    private wiser!: Wiser;
     private wiserGroups: Record<number, WiserAccessory> = {};
     private ignoredAddresses: AccessoryAddress[] = [];
 
@@ -45,7 +54,12 @@ export class WiserPlatform implements DynamicPlatformPlugin {
         public readonly config: PlatformConfig,
         public readonly api: API,
     ) {
-        this.log.debug('Finished initializing platform:', this.config.name);
+        this.log.debug('Finished initializing platform:', this.config?.name);
+
+        if (!this.config || !this.config.wiserAddress || !this.config.wiserPassword) {
+            this.log.warn('Wiser Address or Password is not configured. Plugin initialization skipped.');
+            return;
+        }
 
         this.wiserAddress = this.config.wiserAddress;
         this.wiserPort = this.config.wiserPort;
@@ -73,7 +87,7 @@ export class WiserPlatform implements DynamicPlatformPlugin {
 
             if (this.api.isMatterEnabled?.()) {
                 const restoredAccessories: MatterAccessory[] = [];
-                for (const [uuid, cachedAccessory] of this.matterAccessoriesMap.entries()) {
+                for (const cachedAccessory of this.matterAccessoriesMap.values()) {
                     if (cachedAccessory.context?.device) {
                         try {
                             const device = this.reconstructDeviceFromContext(cachedAccessory.context);
@@ -88,14 +102,14 @@ export class WiserPlatform implements DynamicPlatformPlugin {
                 if (restoredAccessories.length > 0) {
                     this.log.info(`Registering ${restoredAccessories.length} restored Matter accessories synchronously...`);
                     this.api.matter!.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, restoredAccessories)
-                      .then(() => {
-                          this.log.info('Successfully registered all restored Matter accessories. Starting Wiser...');
-                          this.wiser.start();
-                      })
-                      .catch((err) => {
-                          this.log.error('Failed to register restored Matter accessories:', err);
-                          this.wiser.start();
-                      });
+                        .then(() => {
+                            this.log.info('Successfully registered all restored Matter accessories. Starting Wiser...');
+                            this.wiser.start();
+                        })
+                        .catch((err) => {
+                            this.log.error('Failed to register restored Matter accessories:', err);
+                            this.wiser.start();
+                        });
                 } else {
                     this.wiser.start();
                 }
@@ -116,12 +130,12 @@ export class WiserPlatform implements DynamicPlatformPlugin {
                 if (newMatterAccessories.length > 0) {
                     this.log.info(`Registering ${newMatterAccessories.length} new Matter accessories in a single batch...`);
                     this.api.matter!.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, newMatterAccessories)
-                      .then(() => {
-                          this.log.info('Successfully registered all new Matter accessories.');
-                      })
-                      .catch((err) => {
-                          this.log.error('Failed to register Matter accessories:', err);
-                      });
+                        .then(() => {
+                            this.log.info('Successfully registered all new Matter accessories.');
+                        })
+                        .catch((err) => {
+                            this.log.error('Failed to register Matter accessories:', err);
+                        });
                 }
                 this.wiser.getLevels();
             });
@@ -228,7 +242,9 @@ export class WiserPlatform implements DynamicPlatformPlugin {
 
         this.log.debug(`Adding Matter group ${device.id}`);
 
-        const uuid = this.api.matter!.uuid.generate(`${device.wiserProjectGroup.address.network}-${device.wiserProjectGroup.application}-${device.id}`);
+        const uuid = this.api.matter!.uuid.generate(
+            `${device.wiserProjectGroup.address.network}-${device.wiserProjectGroup.application}-${device.id}`,
+        );
         const existingAccessory = this.matterAccessoriesMap.get(uuid);
 
         let wiserAccessory: BaseMatterAccessory;
@@ -292,11 +308,14 @@ export class WiserPlatform implements DynamicPlatformPlugin {
         return new WiserMatterSwitch(this, device, existingAccessory, uuid);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private reconstructDeviceFromContext(context: any): WiserDevice {
         const cachedDevice = context.device;
         const cachedGroup = cachedDevice.wiserProjectGroup;
         const address = new AccessoryAddress(cachedGroup.address.network, cachedGroup.address.groupAddress);
-        const deviceTypeName = typeof cachedGroup.deviceType === 'string' ? cachedGroup.deviceType : (cachedGroup.deviceType?.name || 'switch');
+        const deviceTypeName = typeof cachedGroup.deviceType === 'string'
+            ? cachedGroup.deviceType
+            : (cachedGroup.deviceType?.name || 'switch');
         const deviceType = DeviceType.fromString(deviceTypeName);
         const group = new WiserProjectGroup(
             cachedGroup.name,
@@ -305,7 +324,7 @@ export class WiserPlatform implements DynamicPlatformPlugin {
             cachedGroup.fanSpeeds || [],
             cachedGroup.application,
             cachedGroup.dimmable,
-            cachedGroup.ramprate
+            cachedGroup.ramprate,
         );
         return new WiserDevice(cachedDevice.displayName, cachedDevice.name, cachedDevice.id, group, this.wiser);
     }

@@ -42,23 +42,32 @@ export class WiserAC extends WiserAccessory {
             .onGet(this.getOn.bind(this))
             .onSet(this.setOn.bind(this));
 
-        service.getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
-            .setProps({
-                minValue: 16,
-                maxValue: 28,
-                minStep: 2,
-            })
-            .onGet(this.getCoolingThresholdTemperatureCharacteristic.bind(this))
+        const coolingTempChar = service.getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature);
+        coolingTempChar.setProps({
+            minValue: 16,
+            maxValue: 28,
+            minStep: 2,
+        });
+        if (coolingTempChar.value === undefined || (coolingTempChar.value as number) < 16 || (coolingTempChar.value as number) > 28) {
+            coolingTempChar.updateValue(16);
+        }
+        coolingTempChar.onGet(this.getCoolingThresholdTemperatureCharacteristic.bind(this))
             .onSet(this.setCoolingThresholdTemperatureCharacteristic.bind(this));
 
-        service.getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState)
-            .setProps({
-                validValues: [
-                    this.platform.Characteristic.TargetHeaterCoolerState.COOL,
-                ],
-            })
-            .onGet(this.getTargetHeaterCoolerStateCharacteristic.bind(this))
+        const targetStateChar = service.getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState);
+        targetStateChar.setProps({
+            validValues: [
+                this.platform.Characteristic.TargetHeaterCoolerState.COOL,
+            ],
+        });
+        if (targetStateChar.value !== this.platform.Characteristic.TargetHeaterCoolerState.COOL) {
+            targetStateChar.updateValue(this.platform.Characteristic.TargetHeaterCoolerState.COOL);
+        }
+        targetStateChar.onGet(this.getTargetHeaterCoolerStateCharacteristic.bind(this))
             .onSet(this.setTargetHeaterCoolerStateCharacteristic.bind(this));
+
+        service.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState)
+            .onGet(this.getCurrentHeaterCoolerStateCharacteristic.bind(this));
 
         service.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
             .onGet(this.getCurrentTemperature.bind(this));
@@ -81,8 +90,9 @@ export class WiserAC extends WiserAccessory {
     }
 
     async getOn(): Promise<CharacteristicValue> {
-        this.platform.log.debug(`Get on state ${this.name}(${this.id}) ${this.level === 12}`);
-        return this.level === 12;
+        const active = this.level === 12;
+        this.platform.log.debug(`Get on state ${this.name}(${this.id}) ${active}`);
+        return active ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE;
     }
 
     async setOn(value: CharacteristicValue) {
@@ -101,7 +111,17 @@ export class WiserAC extends WiserAccessory {
     }
 
     updateOnState() {
-        this.service!.updateCharacteristic(this.platform.Characteristic.On, this.level === 12);
+        const isActive = this.level === 12;
+        this.service!.updateCharacteristic(
+            this.platform.Characteristic.Active,
+            isActive ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE,
+        );
+        this.service!.updateCharacteristic(
+            this.platform.Characteristic.CurrentHeaterCoolerState,
+            isActive
+                ? this.platform.Characteristic.CurrentHeaterCoolerState.COOLING
+                : this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE,
+        );
     }
 
     getCoolingThresholdTemperatureCharacteristic(): CharacteristicValue {
@@ -133,6 +153,12 @@ export class WiserAC extends WiserAccessory {
 
     getTargetHeaterCoolerStateCharacteristic(): CharacteristicValue {
         return this.platform.Characteristic.TargetHeaterCoolerState.COOL;
+    }
+
+    getCurrentHeaterCoolerStateCharacteristic(): CharacteristicValue {
+        return this.level === 12
+            ? this.platform.Characteristic.CurrentHeaterCoolerState.COOLING
+            : this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
     }
 
     getCurrentTemperature(): CharacteristicValue {

@@ -7,31 +7,26 @@
     "properties": {
       "name": {
         "title": "Name",
-        "type": "string",
-        "required": true
+        "type": "string"
       },
       "wiserAddress": {
         "title": "Wiser IP Address",
         "type": "string",
-        "format": "ipv4",
-        "required": true
+        "format": "ipv4"
       },
       "wiserUsername": {
         "title": "Wiser admin user name",
         "type": "string",
-        "default": "admin",
-        "required": true
+        "default": "admin"
       },
       "wiserPassword": {
         "title": "Wiser admin password",
-        "type": "string",
-        "required": true
+        "type": "string"
       },
       "wiserPort": {
         "title": "Wiser port password",
         "type": "integer",
-        "default": 8888,
-        "required": true
+        "default": 8888
       },
       "ignoredGAs": {
         "title": "Ignored groups",
@@ -43,18 +38,20 @@
             "network": {
               "title": "Network",
               "type": "integer",
-              "required": true,
               "default": 254,
               "maximum": 255
             },
             "ga": {
               "title": "Group address",
               "type": "integer",
-              "required": true,
               "maximum": 255,
               "default": 0
             }
-          }
+          },
+          "required": [
+            "network",
+            "ga"
+          ]
         }
       },
       "deviceTypes": {
@@ -66,13 +63,11 @@
           "properties": {
             "name": {
               "title": "Device Name",
-              "type": "string",
-              "required": true
+              "type": "string"
             },
             "type": {
               "title": "Device Type",
               "type": "string",
-              "required": true,
               "oneOf": [
                 {
                   "title": "Light",
@@ -103,7 +98,6 @@
             "defaultColor": {
               "title": "Default Device Color after First Power On",
               "type": "string",
-              "required": true,
               "oneOf": [
                 {
                   "title": "Cool White",
@@ -125,7 +119,6 @@
             "secondColor": {
               "title": "Second Color after one switch off and on",
               "type": "string",
-              "required": true,
               "oneOf": [
                 {
                   "title": "Cool White",
@@ -168,15 +161,25 @@
             "fadeTime": {
               "title": "Fade Time in Seconds",
               "type": "integer",
-              "required": false,
               "condition": {
                 "functionBody": "return model.deviceTypes[arrayIndices].type === 'dimmer';"
               }
             }
-          }
+          },
+          "required": [
+            "name",
+            "type"
+          ]
         }
       }
-    }
+    },
+    "required": [
+      "name",
+      "wiserAddress",
+      "wiserUsername",
+      "wiserPassword",
+      "wiserPort"
+    ]
   },
   "form": null,
   "display": null
