@@ -1,5 +1,6 @@
 homebridge-wiser
 ================
+[![verified-by-homebridge](https://img.shields.io/badge/homebridge-verified-blueviolet?color=%23491F59&style=for-the-badge&logoColor=%23FFFFFF&logo=homebridge)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 
 homebridge-wiser is a plug-in for [Homebridge](https://github.com/homebridge/homebridge)
 that adds support for the original Clipsal C-Bus Wiser and the Clipsal Wiser 2. This is a fork of version 2.0 of the plugin from [Paul Wilkinson](https://github.com/paulw11/homebridge-wiser). 
