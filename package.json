@@ -1,6 +1,6 @@
 {
   "name": "@prasad-edlabadkar/homebridge-wiser",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "C-Bus Wiser plugin for homebridge: https://github.com/prasad-edlabadka/homebridge-wiser",
   "main": "dist/index.js",
   "license": "MIT",
@@ -31,7 +31,6 @@
     "homebridge": "^1.6.0 || ^2.0.0 || ^2.0.0-beta.0",
     "node": ">=22"
   },
-
   "dependencies": {
     "got": "^11.8.5",
     "node-xml-stream": "^1.0.2",
